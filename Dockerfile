@@ -1,9 +1,9 @@
 ARG BASEIMAGE=alpine
 FROM ${BASEIMAGE}
 
-ARG BUILD_DATE=2021-07-08
+ARG BUILD_DATE=2021-07-13
 ARG VCS_REF
-ARG VERSION=v1.0
+ARG VERSION=v1.1
 LABEL mantainer="Eloy Lopez <elswork@gmail.com>" \
     org.label-schema.build-date=$BUILD_DATE \
     org.label-schema.name="Samba" \

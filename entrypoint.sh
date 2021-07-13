@@ -1,11 +1,10 @@
 #!/bin/bash
-
-CONFIG_FILE="/etc/samba/smb.conf"
-FIRSTTIME=true
-
-hostname=`hostname`
-set -e
-cat >"$CONFIG_FILE" <<EOT
+function launch_backgroud(){
+  while true; do echo hello world; sleep 1; done
+}
+function smb_base_config(){
+  local config_file="$1"
+cat >"$config_file" <<EOT
 [global]
 workgroup = WORKGROUP
 netbios name = $hostname
@@ -28,11 +27,10 @@ socket options = TCP_NODELAY SO_RCVBUF=8192 SO_SNDBUF=8192
 local master = no
 dns proxy = no
 EOT
+}
 
-  while getopts ":u:s:h" opt; do
-    case $opt in
-      h)
-        cat <<EOH
+function help_usage(){
+cat <<EOH
 Samba server container
 
 ATTENTION: This is a recipe highly adapted to my needs, it might not fit yours.
@@ -72,7 +70,34 @@ docker run -d -p 445:445 \\
   -s "Documents (readonly):/share/data/documents:ro:guest,alice,bob"
 
 EOH
-        exit 1
+}
+function smb_launch(){
+  nmbd -D
+  exec ionice -c 3 smbd -FS --no-process-group --configfile="$CONFIG_FILE" < /dev/null
+}
+#main
+CONFIG_FILE="/etc/samba/smb.conf"
+FIRSTTIME=true
+
+hostname=`hostname`
+set -e
+
+  while getopts ":u:s:hlpb" opt; do
+    case $opt in
+      b)
+#	nohup ping -i 1000 localhost
+        launch_backgroud
+	;;
+      p)
+	smb_base_config "$CONFIG_FILE"
+	;;
+      h)
+        help_usage
+        launch_backgroud
+        # exit 1
+        ;;
+      l)
+        smb_launch
         ;;
       u)
         echo -n "Add user "
@@ -80,7 +105,12 @@ EOH
         echo -n "'$username' "
         if [[ $FIRSTTIME ]] ; then
           id -g "$group" &>/dev/null || id -gn "$groupname" &>/dev/null || addgroup -g "$group" -S "$groupname"
-          id -u "$uid" &>/dev/null || id -un "$username" &>/dev/null || adduser -u "$uid" -G "$groupname" "$username" -SHD
+          id -u "$uid" &>/dev/null || id -un "$username" &>/dev/null || adduser -u "$uid" -G "$groupname" "$username" -SHD 
+          echo "mkdir /share/data/$username"
+          mkdir -p "/share/data/$username" && chown -R "$username": "/share/data/$username"
+          if [ $? != 0 ];then
+            echo "mkdir fail"
+          fi
           FIRSTTIME=false
         fi
         echo -n "with password '$password' "
@@ -88,13 +118,13 @@ EOH
         echo "DONE"
         ;;
       s)
-        echo -n "Add share "
+        echo -n "Add share folder"
         IFS=: read sharename sharepath readwrite users <<<"$OPTARG"
         echo -n "'$sharename' "
         echo "[$sharename]" >>"$CONFIG_FILE"
         echo -n "path '$sharepath' "
         echo "path = \"$sharepath\"" >>"$CONFIG_FILE"
-        echo -n "read"
+        echo -n "read: $readwrite"
         if [[ "rw" = "$readwrite" ]] ; then
           echo -n "+write "
           echo "read only = no" >>"$CONFIG_FILE"
@@ -120,13 +150,14 @@ EOH
         ;;
       \?)
         echo "Invalid option: -$OPTARG"
+        help_usage
         exit 1
         ;;
       :)
         echo "Option -$OPTARG requires an argument."
+        help_usage
         exit 1
         ;;
     esac
   done
-nmbd -D
-exec ionice -c 3 smbd -FS --no-process-group --configfile="$CONFIG_FILE" < /dev/null
+

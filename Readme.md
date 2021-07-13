@@ -91,3 +91,30 @@ On Windows point your filebrowser to `\\host-ip\` to preview site.
 
 ---
 **[Sponsor me!](https://github.com/sponsors/elswork) Together we will be unstoppable.**
+2021-07-09 14:17:44 echo
+issue: 没有自动创建文件夹，需要手动生产并给权限。
+2021-07-14 09:09:14 echo
+docker run -d -p 445:445 --name samba \
+  -e TZ=Asia/Shanghai \
+  -v /home/docker_apps/samba_minio:/share/data \
+  echo756729890/samba -p \
+  -u "1000:1000:echo:echo:echo" \
+  -u "1001:1001:bob:bob:secret" \
+  -u "1002:1002:guest:guest:guest" \
+  -s "Backup directory:/share/backups:rw:echo,bob" \
+  -s "echo (private):/share/data/echo:rw:echo" \
+  -s "Bob (private):/share/data/bob:rw:bob" \
+  -s "Documents (readonly):/share/data/documents:ro:guest,echo,bob" \
+  -l
+#或者使用如下方式，支持后续增加账户，无需重新编译镜像。
+docker run -d -p 445:445 --name samba \
+  -e TZ=Asia/Shanghai \
+  -v /home/docker_apps/samba_minio:/share/data \
+  echo756729890/samba -b
+
+#加载默认配置
+bash entrypoint.sh -p
+#容器启动后新增账户格式
+bash entrypoint.sh -u "2000:2000:young:young:young" -s "young (private):/share/data/young:rw:young"
+#启动samba,每次新增用户需要重新启动该服务。
+bash entrypoint.sh -l &
