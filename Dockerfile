@@ -28,6 +28,11 @@ RUN chmod u+x /entrypoint.sh
 EXPOSE 137/udp 138/udp 139 445
 
 HEALTHCHECK --interval=60s --timeout=15s CMD smbclient -L \\localhost -U % -m SMB3
-
+#add minio client and tool
+ADD mc.tar.gz /usr/bin/mc.bin
+#run chmod u+x /usr/bin/mc #do this in scripts
+copy model.json /etc/model.json
+run mkdir  -p /root/.mc
+copy config.json /root/.mc/config.json
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["-h"]

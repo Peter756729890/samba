@@ -1,0 +1,19 @@
+version: '3.4'
+
+services:
+  samba:
+    container_name: samba
+    image: echo756729890/samba
+    environment:
+      TZ: 'TZ=Asia/Shanghai'
+    networks:
+      - default
+    ports:
+      - "445:445"
+    restart: unless-stopped
+    volumes:
+      - /home/docker_apps/samba_minio:/share/data
+    command: '-p -u "1000:1000:pirate:pirate:pirate" -s "SmbShare:/share/data/pirate:rw:pirate" -l'
+
+# networks:
+  # default:

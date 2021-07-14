@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  minio:
+    container_name: minio
+    image: minio/minio
+    volumes:
+      - /home/docker_apps/samba_minio:/data
+    expose:
+      - "9000"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "9000:9000"
+  samba:
+    container_name: samba
+    image: echo756729890/samba
+    hostname: any-host-name
+    restart: always
+    #privileged: true
+    volumes:
+      - /home/docker_apps/samba_minio:/share/data
+    command: '-f "minio" -p -u "1000:1000:pirate:pirate:pirate123" -s "SmbShare:/share/data/pirate:rw:pirate" -l'
+    ports:
+      - "445:445"
+    depends_on:
+      - minio
